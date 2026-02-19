@@ -9,77 +9,146 @@ interface Message {
   time: string;
 }
 
+interface GroqMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 const getTime = () =>
   new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
+const SYSTEM_PROMPT = `Tu es Chronos, l'assistant virtuel de TimeTravel Agency, une agence de voyage temporel de luxe.
+
+Ton role : conseiller les clients sur les meilleures destinations temporelles.
+
+Ton ton :
+- Professionnel mais chaleureux
+- Passionne d'histoire
+- Toujours enthousiaste sans etre trop familier
+- Expert en voyage temporel (fictif mais credible)
+- Tu utilises des emojis avec parcimonie pour rester elegant
+
+Tu connais parfaitement ces 3 destinations :
+
+1. PARIS 1889 (Belle Epoque) - 12 500 euros/voyageur
+   - Inauguration de la Tour Eiffel, Exposition Universelle
+   - Promenades dans le Paris de Gustave Eiffel
+   - Degustation dans les cafes de Montmartre
+   - Spectacles au Moulin Rouge
+   - Costume d'epoque sur mesure inclus
+   - Guide chrononaute francophone expert du XIXe siecle
+
+2. CRETACE -65 MILLIONS D'ANNEES - 18 900 euros/voyageur
+   - Observation de T-Rex, Triceratops et Pterodactyles
+   - Camp de base securise en foret primitive
+   - Bouclier temporel individuel permanent
+   - Equipement d'exploration fourni
+   - Expedition encadree par 3 chrononautes experts minimum
+   - Notre destination la plus spectaculaire
+
+3. FLORENCE 1504 (Renaissance) - 14 200 euros/voyageur
+   - Rencontre avec Leonard de Vinci dans son atelier
+   - Assister a la creation du David par Michel-Ange
+   - Diner au Palais des Medicis
+   - Visite des plus grandes galeries de l'epoque
+   - Interprete temporel italien inclus
+   - Costume Renaissance sur mesure inclus
+
+Informations generales :
+- Duree standard : 3 a 7 jours sur place
+- Grace a la technologie, le voyageur revient au moment exact de son depart
+- Taux de retour : 100% (2 847 voyages realises, zero incident)
+- Bouclier temporel individuel haute frequence
+- Chrononautes formes pendant 3 ans minimum
+- Technologie anti-paradoxe brevetee
+- Extraction d'urgence instantanee disponible
+- Bagages : medicaments personnels autorises, appareils electroniques modernes interdits
+- Tout est fourni : costumes, equipement, kit de survie temporelle, traducteur neuronal
+- Seance de preparation de 2h incluse avant chaque depart
+- Acompte de 30% a la reservation, solde 7 jours avant le depart
+
+Tu peux suggerer des destinations selon les interets du client :
+- Culture et gastronomie -> Paris 1889
+- Aventure et nature -> Cretace
+- Art et elegance -> Florence 1504
+
+Reponds toujours en francais. Sois concis (max 150 mots par reponse) mais informatif.
+Si on te pose des questions hors sujet, ramene poliment la conversation aux voyages temporels.`;
+
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+
+async function callGroqAPI(messages: GroqMessage[]): Promise<string> {
+  if (!GROQ_API_KEY) {
+    return getFallbackResponse(messages[messages.length - 1].content);
+  }
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        temperature: 0.7,
+        max_tokens: 300,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error('Groq API error:', res.status);
+      return getFallbackResponse(messages[messages.length - 1].content);
+    }
+
+    const data = await res.json();
+    return data.choices[0]?.message?.content || getFallbackResponse('');
+  } catch (err) {
+    console.error('Groq API error:', err);
+    return getFallbackResponse(messages[messages.length - 1].content);
+  }
+}
+
+// Fallback pattern matching si pas de cle API
 const patterns: { keywords: string[]; response: string }[] = [
   {
     keywords: ['bonjour', 'salut', 'hello', 'hey', 'coucou', 'bonsoir'],
     response:
-      "Bonjour et bienvenue chez TimeTravel Agency ! ✨ Je suis Chronos, votre assistant temporel personnel. Comment puis-je vous aider aujourd'hui ?\n\nN'hésitez pas à me poser des questions sur nos destinations, nos tarifs ou la sécurité de nos voyages.",
+      "Bonjour et bienvenue chez TimeTravel Agency ! \u2728 Je suis Chronos, votre assistant temporel personnel. Comment puis-je vous aider aujourd'hui ?\n\nN'h\u00e9sitez pas \u00e0 me poser des questions sur nos destinations, nos tarifs ou la s\u00e9curit\u00e9 de nos voyages.",
   },
   {
-    keywords: ['paris', '1889', 'belle époque', 'eiffel', 'montmartre'],
+    keywords: ['paris', '1889', 'belle \u00e9poque', 'eiffel', 'montmartre'],
     response:
-      "Paris 1889, un choix magnifique ! ✨\n\nVous assisterez à l'inauguration de la Tour Eiffel lors de l'Exposition Universelle.\n\n🗼 Au programme :\n• Promenades dans le Paris de Gustave Eiffel\n• Dégustation dans les cafés de Montmartre\n• Spectacles au Moulin Rouge\n• Costume d'époque sur mesure inclus\n\nLe voyage inclut un guide chrononaute francophone expert du XIXe siècle.",
+      "Paris 1889, un choix magnifique ! \u2728\n\nVous assisterez \u00e0 l'inauguration de la Tour Eiffel lors de l'Exposition Universelle.\n\n\ud83d\uddfc Au programme :\n\u2022 Promenades dans le Paris de Gustave Eiffel\n\u2022 D\u00e9gustation dans les caf\u00e9s de Montmartre\n\u2022 Spectacles au Moulin Rouge\n\u2022 Costume d'\u00e9poque sur mesure inclus\n\n\u00c0 partir de 12 500 \u20ac/voyageur.",
   },
   {
-    keywords: ['dinosaure', 'crétacé', 'dino', 'titan', 't-rex', 'jurassique', 'extinction'],
+    keywords: ['dinosaure', 'cr\u00e9tac\u00e9', 'dino', 'titan', 't-rex', 'jurassique', 'extinction'],
     response:
-      "L'Ère des Titans — notre destination la plus spectaculaire ! 🦕\n\nVous observerez les dinosaures dans leur habitat naturel, 65 millions d'années avant notre ère.\n\n🌿 Points forts :\n• Observation de T-Rex, Tricératops et Ptérodactyles\n• Camp de base sécurisé en forêt primitive\n• Bouclier temporel individuel permanent\n• Équipement d'exploration fourni\n\n⚠️ Expédition encadrée par 3 chrononautes experts minimum.",
+      "L'\u00c8re des Titans \u2014 notre destination la plus spectaculaire ! \ud83e\udd95\n\nObservez les dinosaures dans leur habitat naturel, 65 millions d'ann\u00e9es avant notre \u00e8re.\n\n\u2022 T-Rex, Tric\u00e9ratops et Pt\u00e9rodactyles\n\u2022 Camp de base s\u00e9curis\u00e9\n\u2022 Bouclier temporel individuel\n\n\u00c0 partir de 18 900 \u20ac/voyageur.",
   },
   {
-    keywords: ['florence', 'renaissance', '1504', 'vinci', 'léonard', 'michel-ange', 'david', 'médicis'],
+    keywords: ['florence', 'renaissance', '1504', 'vinci', 'l\u00e9onard', 'michel-ange', 'david', 'm\u00e9dicis'],
     response:
-      "Florence 1504, le berceau de la Renaissance ! 🎨\n\n✨ Expériences uniques :\n• Rencontre avec Léonard de Vinci dans son atelier\n• Assister à la création du David par Michel-Ange\n• Dîner au Palais des Médicis\n• Visite des plus grandes galeries de l'époque\n\nUn interprète temporel italien vous accompagne durant tout le séjour. Costume Renaissance sur mesure inclus.",
+      "Florence 1504, le berceau de la Renaissance ! \ud83c\udfa8\n\n\u2022 Rencontre avec L\u00e9onard de Vinci\n\u2022 Cr\u00e9ation du David par Michel-Ange\n\u2022 D\u00eener au Palais des M\u00e9dicis\n\u2022 Costume Renaissance inclus\n\n\u00c0 partir de 14 200 \u20ac/voyageur.",
   },
   {
-    keywords: ['prix', 'tarif', 'coût', 'combien', 'cher', 'budget', 'argent'],
+    keywords: ['prix', 'tarif', 'co\u00fbt', 'combien', 'cher', 'budget', 'argent'],
     response:
-      "Voici nos tarifs par destination :\n\n🗼 Paris 1889 — à partir de 12 500 €/voyageur\n🦕 Crétacé — à partir de 18 900 €/voyageur\n🎨 Florence 1504 — à partir de 14 200 €/voyageur\n\n✅ Chaque forfait inclut :\n• Transport temporel aller-retour\n• Équipement et costumes d'époque\n• Guide chrononaute dédié\n• Assurance retour garanti\n• Hébergement sur place\n\nDes options premium sont disponibles sur demande.",
+      "Nos tarifs :\n\n\ud83d\uddfc Paris 1889 \u2014 12 500 \u20ac/voyageur\n\ud83e\udd95 Cr\u00e9tac\u00e9 \u2014 18 900 \u20ac/voyageur\n\ud83c\udfa8 Florence 1504 \u2014 14 200 \u20ac/voyageur\n\nChaque forfait inclut : transport temporel, costumes, guide, assurance retour et h\u00e9bergement.",
   },
   {
-    keywords: ['réserver', 'réservation', 'booking', 'inscription', 'inscrire'],
+    keywords: ['s\u00e9curit\u00e9', 'danger', 'risque', 's\u00fbr', 'dangereux', 'safe', 'proteg'],
     response:
-      "Pour réserver, c'est simple ! 📋\n\n1️⃣ Explorez nos destinations sur le site\n2️⃣ Cliquez sur celle qui vous intéresse\n3️⃣ Un conseiller temporel vous contacte sous 24h\n4️⃣ Acompte de 30% à la réservation\n5️⃣ Solde 7 jours avant le départ\n\nVous pouvez aussi passer notre quiz de recommandation pour trouver la destination parfaite !",
+      "La s\u00e9curit\u00e9 est notre priorit\u00e9 ! \ud83d\udee1\ufe0f\n\n\u2022 Bouclier temporel individuel\n\u2022 Taux de retour : 100% (2 847 voyages)\n\u2022 Z\u00e9ro incident\n\u2022 Technologie anti-paradoxe brevet\u00e9e\n\u2022 Extraction d'urgence instantan\u00e9e",
   },
   {
-    keywords: ['sécurité', 'danger', 'risque', 'sûr', 'dangereux', 'safe', 'proteg'],
-    response:
-      "La sécurité est notre priorité absolue ! 🛡️\n\n• Bouclier temporel individuel haute fréquence\n• Chrononautes formés pendant 3 ans minimum\n• Taux de retour : 100% (2 847 voyages)\n• Zéro incident depuis la création\n• Technologie anti-paradoxe brevetée\n• Extraction d'urgence instantanée\n\nVous êtes en sécurité à chaque instant de votre voyage. C'est notre engagement.",
-  },
-  {
-    keywords: ['bagage', 'valise', 'emporter', 'affaire', 'préparer', 'preparation'],
-    response:
-      "Excellente question ! 🧳\n\nVous n'avez presque rien à emporter :\n\n✅ Autorisé : médicaments personnels\n❌ Interdit : appareils électroniques modernes\n\nNous fournissons TOUT :\n• Costumes d'époque sur mesure\n• Équipement d'exploration\n• Kit de survie temporelle\n• Traducteur neuronal\n\nUne séance de préparation de 2h est incluse avant le départ.",
-  },
-  {
-    keywords: ['durée', 'temps', 'long', 'jours', 'combien de temps', 'semaine'],
-    response:
-      "La durée standard est de 3 à 7 jours sur place. ⏳\n\nMais voici le meilleur :\nGrâce à notre technologie, vous revenez exactement au moment de votre départ.\n\n🤯 Concrètement : partez 7 jours au Crétacé et revenez comme si seulement quelques secondes s'étaient écoulées dans le présent !\n\nAucun impact sur votre vie quotidienne.",
-  },
-  {
-    keywords: ['retour', 'revenir', 'garantie', 'garanti', 'coincé', 'bloqué'],
-    response:
-      "Le retour est garanti à 100% ! ✅\n\nNotre système de rappel temporel est infaillible :\n\n• Retour automatique en fin de séjour\n• Bouton d'extraction d'urgence individuel\n• Balise de localisation temporelle permanente\n• Double système de secours\n\n2 847 voyages réalisés. 2 847 retours réussis. Aucune exception.",
-  },
-  {
-    keywords: ['choisir', 'conseiller', 'hésit', 'recommand', 'quel', 'laquelle', 'aide'],
-    response:
-      "Je vous recommande notre quiz de recommandation ! 🎯\n\nIl est disponible juste au-dessus sur la page — en 4 questions, il détermine quelle époque correspond le mieux à votre personnalité.\n\nSinon, dites-moi :\n• 🗼 Culture et gastronomie → Paris 1889\n• 🦕 Aventure et nature → Crétacé\n• 🎨 Art et élégance → Florence 1504\n\nQu'est-ce qui vous attire le plus ?",
-  },
-  {
-    keywords: ['merci', 'super', 'génial', 'cool', 'top', 'parfait', 'excellent'],
-    response: "Avec grand plaisir ! 😊\n\nN'hésitez pas si d'autres questions vous viennent. Je suis disponible 24h/24 à travers toutes les époques.\n\nLe passé n'attend que vous ! ✨",
-  },
-  {
-    keywords: ['qui es', 'chronos', 'robot', 'ia', 'intelligence'],
-    response:
-      "Je suis Chronos, l'assistant IA de TimeTravel Agency ! 🕰️\n\nJe suis spécialisé dans le conseil en voyages temporels. Je connais chaque époque, chaque destination et chaque détail de nos services.\n\nMa mission : vous aider à trouver le voyage parfait et répondre à toutes vos questions. Que souhaitez-vous savoir ?",
+    keywords: ['merci', 'super', 'g\u00e9nial', 'cool', 'top', 'parfait'],
+    response: "Avec grand plaisir ! \ud83d\ude0a N'h\u00e9sitez pas si d'autres questions vous viennent. Le pass\u00e9 n'attend que vous ! \u2728",
   },
 ];
 
-function getResponse(input: string): string {
+function getFallbackResponse(input: string): string {
   const lower = input
     .toLowerCase()
     .normalize('NFD')
@@ -93,7 +162,7 @@ function getResponse(input: string): string {
       return p.response;
     }
   }
-  return "Merci pour votre question ! 🕰️\n\nJe suis spécialisé dans les voyages temporels. Voici ce que je peux vous aider avec :\n\n• 🗼🦕🎨 Détails sur nos 3 destinations\n• 💰 Tarifs et réservations\n• 🛡️ Sécurité et garanties\n• 🧳 Préparation du voyage\n• ⏳ Durée et retour\n\nN'hésitez pas à me poser une question plus précise !";
+  return "Merci pour votre question ! \ud83d\udd70\ufe0f\n\nJe peux vous renseigner sur :\n\u2022 Nos 3 destinations (Paris, Cr\u00e9tac\u00e9, Florence)\n\u2022 Tarifs et r\u00e9servations\n\u2022 S\u00e9curit\u00e9 et garanties\n\u2022 Pr\u00e9paration du voyage\n\nQue souhaitez-vous savoir ?";
 }
 
 export default function Chatbot() {
@@ -101,10 +170,14 @@ export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 0,
-      text: "Bienvenue chez TimeTravel Agency ! ✨\n\nJe suis Chronos, votre assistant temporel. Comment puis-je vous aider aujourd'hui ?",
+      text: "Bienvenue chez TimeTravel Agency ! \u2728\n\nJe suis Chronos, votre assistant temporel propuls\u00e9 par IA. Comment puis-je vous aider aujourd'hui ?",
       sender: 'bot',
       time: getTime(),
     },
+  ]);
+  const [chatHistory, setChatHistory] = useState<GroqMessage[]>([
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'assistant', content: "Bienvenue chez TimeTravel Agency ! Je suis Chronos, votre assistant temporel. Comment puis-je vous aider aujourd'hui ?" },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -123,33 +196,37 @@ export default function Chatbot() {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
-  const handleSend = () => {
-    if (!input.trim() || isTyping) return;
+  const handleSend = async (overrideText?: string) => {
+    const text = overrideText || input.trim();
+    if (!text || isTyping) return;
+
     const userMsg: Message = {
       id: Date.now(),
-      text: input.trim(),
+      text,
       sender: 'user',
       time: getTime(),
     };
     setMessages((prev) => [...prev, userMsg]);
-    const userInput = input.trim();
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const response = getResponse(userInput);
-      setIsTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + 1, text: response, sender: 'bot', time: getTime() },
-      ]);
-    }, 800 + Math.random() * 1200);
+    const newHistory: GroqMessage[] = [...chatHistory, { role: 'user', content: text }];
+    setChatHistory(newHistory);
+
+    const response = await callGroqAPI(newHistory);
+
+    setChatHistory([...newHistory, { role: 'assistant', content: response }]);
+    setIsTyping(false);
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now() + 1, text: response, sender: 'bot', time: getTime() },
+    ]);
   };
 
   const quickActions = [
     { label: 'Destinations', value: 'Quelles sont vos destinations ?' },
     { label: 'Prix', value: 'Quels sont vos tarifs ?' },
-    { label: 'Sécurité', value: 'Est-ce que le voyage est sûr ?' },
+    { label: 'S\u00e9curit\u00e9', value: 'Est-ce que le voyage est s\u00fbr ?' },
   ];
 
   return (
@@ -197,16 +274,18 @@ export default function Chatbot() {
             <div className="px-5 py-4 border-b border-white/[0.04] flex items-center gap-3 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-gold/[0.03] to-cosmic/[0.03]" />
               <div className="relative w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(123,47,190,0.2))' }}>
-                <span className="text-base">🕰️</span>
+                <Sparkles className="w-4 h-4 text-gold" />
               </div>
               <div className="relative">
-                <div className="font-display text-sm text-white font-semibold tracking-wide">Chronos</div>
+                <div className="font-display text-sm text-white font-semibold tracking-wide flex items-center gap-2">
+                  Chronos
+                  {GROQ_API_KEY && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald/10 text-emerald border border-emerald/20 font-body">IA</span>}
+                </div>
                 <div className="text-[11px] text-emerald font-body flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald shadow-[0_0_6px_rgba(0,200,150,0.5)]" />
-                  Assistant TimeTravel
+                  {GROQ_API_KEY ? 'Propuls\u00e9 par Llama 3.3' : 'Assistant TimeTravel'}
                 </div>
               </div>
-              <Sparkles className="w-3.5 h-3.5 text-gold/30 ml-auto relative" />
             </div>
 
             {/* Messages */}
@@ -279,28 +358,7 @@ export default function Chatbot() {
                   {quickActions.map((qa) => (
                     <button
                       key={qa.label}
-                      onClick={() => {
-                        setInput(qa.value);
-                        setTimeout(() => {
-                          const userMsg: Message = {
-                            id: Date.now(),
-                            text: qa.value,
-                            sender: 'user',
-                            time: getTime(),
-                          };
-                          setMessages((prev) => [...prev, userMsg]);
-                          setInput('');
-                          setIsTyping(true);
-                          setTimeout(() => {
-                            const response = getResponse(qa.value);
-                            setIsTyping(false);
-                            setMessages((prev) => [
-                              ...prev,
-                              { id: Date.now() + 1, text: response, sender: 'bot', time: getTime() },
-                            ]);
-                          }, 800 + Math.random() * 800);
-                        }, 100);
-                      }}
+                      onClick={() => handleSend(qa.value)}
                       className="px-3 py-1.5 rounded-full text-[11px] font-body text-gold/60 hover:text-gold hover:bg-gold/5 transition-all cursor-pointer"
                       style={{ border: '1px solid rgba(212,175,55,0.15)' }}
                     >
@@ -327,7 +385,7 @@ export default function Chatbot() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Posez-moi vos questions..."
+                  placeholder="Posez-moi vos questions sur les voyages temporels..."
                   className="flex-1 bg-white/[0.03] border border-white/[0.04] rounded-full px-4 py-2.5 text-[13px] font-body text-white/80 placeholder:text-white/15 focus:outline-none focus:border-gold/20 transition-all"
                 />
                 <motion.button
