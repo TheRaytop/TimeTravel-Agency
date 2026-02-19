@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Timer, Menu, X, Sparkles } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
 
 const links = [
   { label: 'À propos', href: '#about' },
@@ -77,8 +76,6 @@ export default function Header() {
                     {l.label}
                   </button>
                 ))}
-
-                <ThemeToggle />
 
                 <div className="w-px h-4 bg-white/[0.06]" />
 
