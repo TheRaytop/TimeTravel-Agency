@@ -4,23 +4,24 @@ import { ArrowRight } from 'lucide-react';
 interface Dest {
   emoji: string; title: string; era: string; sub: string; desc: string;
   tags: string[]; price: string; accent: string; rgb: string; spots: number;
+  bookingId: string;
 }
 
 const dests: Dest[] = [
   {
     emoji: '🗼', title: 'Paris 1889', era: 'La Belle Époque', sub: 'Exposition Universelle',
     desc: "Assistez à l'inauguration de la Tour Eiffel lors de l'Exposition Universelle. Promenez-vous dans le Paris de Gustave Eiffel, savourez les cafés de Montmartre et vivez l'effervescence d'une époque révolutionnaire.",
-    tags: ['Culture', 'Architecture', 'Gastronomie'], price: '12 500', accent: '#D4AF37', rgb: '212,175,55', spots: 7,
+    tags: ['Culture', 'Architecture', 'Gastronomie'], price: '12 500', accent: '#D4AF37', rgb: '212,175,55', spots: 7, bookingId: 'paris-1889',
   },
   {
     emoji: '🦕', title: 'Crétacé', era: "L'Ère des Titans", sub: "-65 millions d'années",
     desc: "Observez les dinosaures dans leur habitat naturel avant la grande extinction. Une expédition encadrée au cœur de forêts primitives luxuriantes, entre T-Rex majestueux et Tricératops paisibles.",
-    tags: ['Aventure', 'Nature', 'Exploration'], price: '18 900', accent: '#00C896', rgb: '0,200,150', spots: 3,
+    tags: ['Aventure', 'Nature', 'Exploration'], price: '18 900', accent: '#00C896', rgb: '0,200,150', spots: 3, bookingId: 'cretace',
   },
   {
     emoji: '🎨', title: 'Florence 1504', era: 'La Renaissance', sub: 'Apogée artistique',
     desc: "Rencontrez Léonard de Vinci et Michel-Ange à l'apogée de la Renaissance italienne. Visitez les ateliers des plus grands maîtres, admirez la création du David et flânez dans les palais des Médicis.",
-    tags: ['Art', 'Histoire', 'Élégance'], price: '14 200', accent: '#C41E3A', rgb: '196,30,58', spots: 12,
+    tags: ['Art', 'Histoire', 'Élégance'], price: '14 200', accent: '#C41E3A', rgb: '196,30,58', spots: 12, bookingId: 'florence-1504',
   },
 ];
 
@@ -92,12 +93,16 @@ function Card({ d, i }: { d: Dest; i: number }) {
             <div className="font-display text-3xl font-bold mb-8" style={{ color: d.accent }}>
               {d.price} € <span className="text-sm text-white/20 font-body font-normal">/voyageur</span>
             </div>
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500"
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('select-destination', { detail: d.bookingId }));
+                document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-14 h-14 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 cursor-pointer hover:scale-110"
               style={{ background: `rgba(${d.rgb},0.08)`, border: `1px solid rgba(${d.rgb},0.15)` }}
             >
               <ArrowRight className="w-5 h-5" style={{ color: d.accent }} />
-            </div>
+            </button>
           </div>
         </div>
 

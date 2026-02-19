@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
@@ -468,6 +468,20 @@ export default function Booking() {
   const [confirmed, setConfirmed] = useState(false);
 
   const [selectedDest, setSelectedDest] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent).detail;
+      if (id) {
+        setSelectedDest(id);
+        setStep(0);
+        setConfirmed(false);
+      }
+    };
+    window.addEventListener('select-destination', handler);
+    return () => window.removeEventListener('select-destination', handler);
+  }, []);
+
   const [details, setDetails] = useState<BookingDetails>({
     departureDate: "",
     duration: 3,
@@ -543,7 +557,7 @@ export default function Booking() {
   /* ── Rendu ── */
 
   return (
-    <section className="relative py-24 px-4" style={{ backgroundColor: "#030014" }}>
+    <section id="booking" className="relative py-24 px-4" style={{ backgroundColor: "#030014" }}>
       <div className="max-w-2xl mx-auto">
         {/* ── Divider ── */}
         <div className="flex items-center gap-4 mb-8">
