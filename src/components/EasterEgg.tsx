@@ -101,14 +101,14 @@ const SCENES: Scene[] = [
   {
     stars: EIFFEL_STARS,
     title: 'Paris 1889',
-    subtitle: 'La Belle \u00c9poque',
+    subtitle: 'La Belle Époque',
     accent: '#D4AF37',
     emoji: '\ud83d\uddfc',
   },
   {
     stars: TREX_STARS,
-    title: 'Cr\u00e9tac\u00e9',
-    subtitle: "-65 millions d'ann\u00e9es",
+    title: 'Crétacé',
+    subtitle: "-65 millions d'années",
     accent: '#00C896',
     emoji: '\ud83e\udd95',
   },
@@ -255,7 +255,7 @@ export default function EasterEgg() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8, duration: 0.8 }}
                 >
-                  PR\u00c9SENTE
+                  PRÉSENTE
                 </motion.p>
 
                 {/* Ligne dorée qui s'étend */}
@@ -400,7 +400,7 @@ export default function EasterEgg() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.8 }}
                 >
-                  Le pass\u00e9 n'attend que vous.
+                  Le passé n'attend que vous.
                 </motion.p>
                 <motion.div
                   className="h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent"
