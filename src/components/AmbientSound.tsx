@@ -2,31 +2,68 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, VolumeX } from 'lucide-react';
 
-function createReverb(ctx: AudioContext, duration = 3, decay = 2): ConvolverNode {
+// Pentatonic scale notes — always sounds pleasant (like Minecraft C418)
+const NOTES = [
+  261.63, 293.66, 329.63, 392.00, 440.00,  // C4 D4 E4 G4 A4
+  523.25, 587.33, 659.25, 783.99, 880.00,  // C5 D5 E5 G5 A5
+  130.81, 146.83, 164.81, 196.00, 220.00,  // C3 D3 E3 G3 A3
+];
+
+function createReverb(ctx: AudioContext): ConvolverNode {
   const convolver = ctx.createConvolver();
   const rate = ctx.sampleRate;
-  const length = rate * duration;
+  const length = rate * 3.5;
   const impulse = ctx.createBuffer(2, length, rate);
   for (let ch = 0; ch < 2; ch++) {
     const data = impulse.getChannelData(ch);
     for (let i = 0; i < length; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 1.5);
     }
   }
   convolver.buffer = impulse;
   return convolver;
 }
 
-function createNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
-  const length = ctx.sampleRate * seconds;
-  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const data = buffer.getChannelData(ch);
-    for (let i = 0; i < length; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-  }
-  return buffer;
+function playNote(ctx: AudioContext, dest: AudioNode, freq: number) {
+  const now = ctx.currentTime;
+
+  // Main tone (soft piano-like)
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+
+  // Second harmonic for warmth
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = freq * 2;
+
+  const gain = ctx.createGain();
+  const gain2 = ctx.createGain();
+
+  // Piano-like envelope: quick attack, slow decay
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.03, now + 0.5);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 3);
+
+  gain2.gain.setValueAtTime(0, now);
+  gain2.gain.linearRampToValueAtTime(0.015, now + 0.02);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
+  // Gentle stereo pan
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = Math.random() * 1.4 - 0.7;
+
+  osc.connect(gain);
+  osc2.connect(gain2);
+  gain.connect(pan);
+  gain2.connect(pan);
+  pan.connect(dest);
+
+  osc.start(now);
+  osc2.start(now);
+  osc.stop(now + 3.5);
+  osc2.stop(now + 2);
 }
 
 export default function AmbientSound() {
@@ -34,11 +71,30 @@ export default function AmbientSound() {
   const [showHint, setShowHint] = useState(true);
   const ctxRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
-  const nodesRef = useRef<AudioNode[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRef = useRef(false);
 
   useEffect(() => {
     const t = setTimeout(() => setShowHint(false), 5000);
     return () => clearTimeout(t);
+  }, []);
+
+  const scheduleNext = useCallback(() => {
+    if (!activeRef.current || !ctxRef.current || !masterGainRef.current) return;
+
+    playNote(ctxRef.current, masterGainRef.current, NOTES[Math.floor(Math.random() * NOTES.length)]);
+
+    // Sometimes play a second note for a chord
+    if (Math.random() > 0.5) {
+      setTimeout(() => {
+        if (!activeRef.current || !ctxRef.current || !masterGainRef.current) return;
+        playNote(ctxRef.current, masterGainRef.current, NOTES[Math.floor(Math.random() * NOTES.length)]);
+      }, 200 + Math.random() * 400);
+    }
+
+    // Random delay between notes (like Minecraft — slow, peaceful)
+    const delay = 1500 + Math.random() * 3000;
+    intervalRef.current = setTimeout(() => scheduleNext(), delay);
   }, []);
 
   const startAudio = useCallback(() => {
@@ -50,147 +106,25 @@ export default function AmbientSound() {
     master.gain.value = 0;
     masterGainRef.current = master;
 
-    const reverb = createReverb(ctx, 4, 1.8);
+    const reverb = createReverb(ctx);
     const reverbGain = ctx.createGain();
-    reverbGain.gain.value = 0.3;
+    reverbGain.gain.value = 0.5;
 
     const dry = ctx.createGain();
-    dry.gain.value = 0.7;
+    dry.gain.value = 0.6;
 
-    master.connect(dry);
+    // Soft lowpass to keep everything mellow
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 2500;
+    filter.Q.value = 0.5;
+
+    master.connect(filter);
+    filter.connect(dry);
     dry.connect(ctx.destination);
-    master.connect(reverbGain);
+    filter.connect(reverbGain);
     reverbGain.connect(reverb);
     reverb.connect(ctx.destination);
-
-    // --- 1. Filtered noise (cosmic wind) ---
-    const noiseSource = ctx.createBufferSource();
-    noiseSource.buffer = createNoiseBuffer(ctx, 4);
-    noiseSource.loop = true;
-
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.value = 400;
-    noiseFilter.Q.value = 0.5;
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.012;
-
-    // Slow sweep on the filter
-    const noiseLfo = ctx.createOscillator();
-    noiseLfo.frequency.value = 0.03;
-    const noiseLfoGain = ctx.createGain();
-    noiseLfoGain.gain.value = 200;
-    noiseLfo.connect(noiseLfoGain);
-    noiseLfoGain.connect(noiseFilter.frequency);
-    noiseLfo.start();
-
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(master);
-    noiseSource.start();
-
-    nodesRef.current.push(noiseSource, noiseLfo);
-
-    // --- 2. Deep sub drone (barely audible pulse) ---
-    const sub = ctx.createOscillator();
-    sub.type = 'sine';
-    sub.frequency.value = 40;
-    const subGain = ctx.createGain();
-    subGain.gain.value = 0.025;
-
-    const subLfo = ctx.createOscillator();
-    subLfo.frequency.value = 0.08;
-    const subLfoGain = ctx.createGain();
-    subLfoGain.gain.value = 0.015;
-    subLfo.connect(subLfoGain);
-    subLfoGain.connect(subGain.gain);
-    subLfo.start();
-
-    sub.connect(subGain);
-    subGain.connect(master);
-    sub.start();
-    nodesRef.current.push(sub, subLfo);
-
-    // --- 3. Ethereal pad (3 detuned voices with slow breathing) ---
-    const padNotes = [
-      { freq: 130.81, detune: -8 },   // C3
-      { freq: 196.00, detune: 5 },    // G3
-      { freq: 261.63, detune: -3 },   // C4
-      { freq: 329.63, detune: 7 },    // E4
-    ];
-
-    padNotes.forEach(({ freq, detune }) => {
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      osc.detune.value = detune;
-
-      const oscGain = ctx.createGain();
-      oscGain.gain.value = 0.008;
-
-      // Slow amplitude breathing
-      const ampLfo = ctx.createOscillator();
-      ampLfo.frequency.value = 0.04 + Math.random() * 0.06;
-      const ampLfoGain = ctx.createGain();
-      ampLfoGain.gain.value = 0.005;
-      ampLfo.connect(ampLfoGain);
-      ampLfoGain.connect(oscGain.gain);
-      ampLfo.start();
-
-      // Very slow pitch drift
-      const pitchLfo = ctx.createOscillator();
-      pitchLfo.frequency.value = 0.02 + Math.random() * 0.03;
-      const pitchLfoGain = ctx.createGain();
-      pitchLfoGain.gain.value = 1.5;
-      pitchLfo.connect(pitchLfoGain);
-      pitchLfoGain.connect(osc.frequency);
-      pitchLfo.start();
-
-      // Lowpass per voice
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 600 + Math.random() * 400;
-      filter.Q.value = 0.7;
-
-      osc.connect(filter);
-      filter.connect(oscGain);
-      oscGain.connect(master);
-      osc.start();
-      nodesRef.current.push(osc, ampLfo, pitchLfo);
-    });
-
-    // --- 4. Occasional shimmer (random high harmonic pings) ---
-    const shimmerInterval = setInterval(() => {
-      if (!ctxRef.current || masterGainRef.current?.gain.value === 0) return;
-      const now = ctx.currentTime;
-      const shimmer = ctx.createOscillator();
-      shimmer.type = 'sine';
-      shimmer.frequency.value = 800 + Math.random() * 2000;
-
-      const shimmerGain = ctx.createGain();
-      shimmerGain.gain.setValueAtTime(0, now);
-      shimmerGain.gain.linearRampToValueAtTime(0.006, now + 0.3);
-      shimmerGain.gain.exponentialRampToValueAtTime(0.0001, now + 3);
-
-      const shimmerFilter = ctx.createBiquadFilter();
-      shimmerFilter.type = 'bandpass';
-      shimmerFilter.frequency.value = shimmer.frequency.value;
-      shimmerFilter.Q.value = 8;
-
-      const pan = ctx.createStereoPanner();
-      pan.pan.value = Math.random() * 2 - 1;
-
-      shimmer.connect(shimmerFilter);
-      shimmerFilter.connect(shimmerGain);
-      shimmerGain.connect(pan);
-      pan.connect(master);
-      shimmer.start(now);
-      shimmer.stop(now + 3.5);
-    }, 3000 + Math.random() * 5000);
-
-    nodesRef.current.push({ stop: () => clearInterval(shimmerInterval) } as unknown as AudioNode);
-
   }, []);
 
   const toggle = useCallback(() => {
@@ -200,15 +134,19 @@ export default function AmbientSound() {
       if (ctxRef.current?.state === 'suspended') ctxRef.current.resume();
       if (masterGainRef.current && ctxRef.current) {
         masterGainRef.current.gain.cancelScheduledValues(ctxRef.current.currentTime);
-        masterGainRef.current.gain.setTargetAtTime(1, ctxRef.current.currentTime, 1.5);
+        masterGainRef.current.gain.setTargetAtTime(1, ctxRef.current.currentTime, 0.5);
       }
+      activeRef.current = true;
+      scheduleNext();
     } else {
+      activeRef.current = false;
+      if (intervalRef.current) clearTimeout(intervalRef.current);
       if (masterGainRef.current && ctxRef.current) {
-        masterGainRef.current.gain.setTargetAtTime(0, ctxRef.current.currentTime, 0.8);
+        masterGainRef.current.gain.setTargetAtTime(0, ctxRef.current.currentTime, 0.5);
       }
     }
     setPlaying(!playing);
-  }, [playing, startAudio]);
+  }, [playing, startAudio, scheduleNext]);
 
   return (
     <div className="fixed bottom-6 left-6 z-50 flex items-center gap-3">
