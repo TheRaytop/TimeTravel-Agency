@@ -30,7 +30,7 @@ Projet réalisé dans le cadre du cours **M1/M2 Digital & IA** par **YAHIA Rayan
 
 ---
 
-## Fonctionnalités (17 composants)
+## Fonctionnalités (16 composants)
 
 | Feature | Description | Fichier |
 |---|---|---|
@@ -39,7 +39,7 @@ Projet réalisé dans le cadre du cours **M1/M2 Digital & IA** par **YAHIA Rayan
 | Header | Navigation fixe avec scroll spy | `Header.tsx` |
 | Hero | Titre animé avec effet typewriter et CTA | `Hero.tsx` |
 | À propos | 3 compteurs animés (époques, voyageurs, satisfaction) | `About.tsx` |
-| Destinations | 3 cards interactives avec prix et compteur de places | `Destinations.tsx` |
+| Destinations | 3 cards interactives avec prix, places et lien vers réservation | `Destinations.tsx` |
 | Galerie | 12 cartes avec onglets filtrés par époque | `Gallery.tsx` |
 | Timeline | Frise chronologique verticale des 3 époques | `Timeline.tsx` |
 | Quiz | Recommandation personnalisée en 4 questions | `Quiz.tsx` |
@@ -47,8 +47,8 @@ Projet réalisé dans le cadre du cours **M1/M2 Digital & IA** par **YAHIA Rayan
 | Chatbot IA | Agent conversationnel Chronos (Groq + Llama 3.3) | `Chatbot.tsx` |
 | Témoignages | 6 avis de voyageurs avec étoiles | `Testimonials.tsx` |
 | FAQ | 8 questions en accordéon animé | `FAQ.tsx` |
-| Son ambiance | Audio génératif via Web Audio API | `AmbientSound.tsx` |
-| Easter egg | Taper "time" au clavier pour un effet warp | `EasterEgg.tsx` |
+| Son ambiance | Piano génératif ambiant style Minecraft (Web Audio API) | `AmbientSound.tsx` |
+| Easter egg | Taper "time" : mini présentation constellations (Tour Eiffel, T-Rex, David) | `EasterEgg.tsx` |
 | Page 404 | Page thématique "perdu dans le temps" | `NotFound.tsx` |
 | Footer | Liens et crédits | `Footer.tsx` |
 
@@ -215,7 +215,7 @@ Le projet a été développé en **vibe coding** avec Claude Code : description 
 
 ### Points forts de l'approche IA
 
-- **Rapidité** : 17 composants générés et intégrés en une session
+- **Rapidité** : 16 composants générés et intégrés en une session
 - **Qualité** : TypeScript strict, animations fluides, code structuré
 - **Cohérence** : design system maintenu sur tout le site (palette gold/void/cosmic)
 - **Debugging** : identification rapide des bugs CSS (ex: conflit Tailwind v4 cascade layers)

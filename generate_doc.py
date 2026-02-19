@@ -288,6 +288,7 @@ make_dark_table(doc, ['Technologie', 'Usage'], [
     ('Lucide React', 'Ic\u00f4nes SVG coh\u00e9rentes'),
     ('Vite 7', 'Build tool ultra-rapide, HMR'),
     ('Web Audio API', "Son d'ambiance g\u00e9n\u00e9ratif"),
+    ('Groq API', 'Agent conversationnel IA (Llama 3.3 70B)'),
     ('Vercel', 'D\u00e9ploiement et h\u00e9bergement production'),
     ('Claude Code', 'Assistant IA (Claude Opus 4.6)'),
 ])
@@ -314,9 +315,8 @@ features_list = [
     "\u25B8  Chatbot IA conversationnel (Chronos)",
     "\u25B8  Section t\u00e9moignages (6 avis de voyageurs)",
     "\u25B8  FAQ en accord\u00e9on anim\u00e9 (8 questions)",
-    "\u25B8  Mode sombre/clair avec toggle",
-    "\u25B8  Son d'ambiance g\u00e9n\u00e9ratif (Web Audio API)",
-    '\u25B8  Easter egg clavier (taper "time")',
+    "\u25B8  Son d'ambiance piano g\u00e9n\u00e9ratif style Minecraft (Web Audio API)",
+    '\u25B8  Easter egg clavier (taper "time") : pr\u00e9sentation constellations',
     "\u25B8  Page 404 th\u00e9matique",
 ]
 for f in features_list:
@@ -365,7 +365,7 @@ anims = [
     'Transitions entre \u00e9tapes (quiz, r\u00e9servation)',
     'Compteurs anim\u00e9s, accord\u00e9on FAQ',
     'Particules flottantes en arri\u00e8re-plan',
-    'Easter egg : effet tunnel warp temporel',
+    'Easter egg : constellations anim\u00e9es (Tour Eiffel, T-Rex, David)',
     'Loading screen avec animation d\u2019entr\u00e9e',
 ]
 for a in anims:
@@ -383,7 +383,8 @@ add_styled_heading(doc, '5.1  Agent conversationnel \u2014 Chronos', level=2)
 
 add_body_text(doc,
     "Le chatbot Chronos est accessible via un widget flottant en bas \u00e0 droite. "
-    "Il utilise un syst\u00e8me de pattern matching pour r\u00e9pondre intelligemment aux visiteurs."
+    "Il est propuls\u00e9 par l'API Groq avec le mod\u00e8le Llama 3.3 70B et r\u00e9pond "
+    "en temps r\u00e9el \u00e0 n'importe quelle question des visiteurs."
 )
 
 add_body_text(doc, 'Capacit\u00e9s de Chronos :', bold=True)
@@ -392,7 +393,9 @@ chat_features = [
     'Informations tarifs (12 500 \u20ac / 18 900 \u20ac / 14 200 \u20ac)',
     'S\u00e9curit\u00e9, garanties, bagages, dur\u00e9e',
     'Recommandation selon les int\u00e9r\u00eats',
+    'Historique de conversation (contexte gard\u00e9)',
     'Quick actions + indicateur de frappe',
+    'Fallback pattern matching si API indisponible',
 ]
 for c in chat_features:
     add_bullet(doc, c)
@@ -428,20 +431,19 @@ add_section_divider(doc)
 make_dark_table(doc, ['Feature', 'Description', 'Fichier'], [
     ('Loading Screen', '\u00c9cran de chargement anim\u00e9', 'LoadingScreen.tsx'),
     ('Particules', 'Arri\u00e8re-plan anim\u00e9', 'ParticleBackground.tsx'),
-    ('Header', 'Nav fixe + scroll spy + th\u00e8me', 'Header.tsx'),
+    ('Header', 'Nav fixe + scroll spy', 'Header.tsx'),
     ('Hero', 'Titre anim\u00e9, typewriter, CTA', 'Hero.tsx'),
     ('\u00c0 propos', '3 compteurs anim\u00e9s', 'About.tsx'),
-    ('Destinations', '3 cards + prix + places', 'Destinations.tsx'),
+    ('Destinations', '3 cards + prix + places + lien r\u00e9servation', 'Destinations.tsx'),
     ('Galerie', '12 cartes, onglets par \u00e9poque', 'Gallery.tsx'),
     ('Timeline', 'Frise chronologique verticale', 'Timeline.tsx'),
     ('Quiz', 'Recommandation 4 questions', 'Quiz.tsx'),
     ('R\u00e9servation', 'Formulaire 4 \u00e9tapes', 'Booking.tsx'),
     ('T\u00e9moignages', '6 avis + \u00e9toiles', 'Testimonials.tsx'),
     ('FAQ', '8 questions accord\u00e9on', 'FAQ.tsx'),
-    ('Chatbot', 'Agent Chronos', 'Chatbot.tsx'),
-    ('Th\u00e8me', 'Toggle sombre/clair', 'ThemeToggle.tsx'),
-    ('Son ambiance', 'Web Audio API', 'AmbientSound.tsx'),
-    ('Easter egg', 'Taper "time"', 'EasterEgg.tsx'),
+    ('Chatbot IA', 'Agent Chronos (Groq + Llama 3.3)', 'Chatbot.tsx'),
+    ('Son ambiance', 'Piano g\u00e9n\u00e9ratif style Minecraft', 'AmbientSound.tsx'),
+    ('Easter egg', 'Constellations Tour Eiffel / T-Rex / David', 'EasterEgg.tsx'),
     ('Page 404', 'Perdu dans le temps', 'NotFound.tsx'),
 ])
 
@@ -491,6 +493,7 @@ add_body_text(doc, 'Transparence sur les outils IA utilis\u00e9s dans ce projet 
 
 make_dark_table(doc, ['Outil', 'Mod\u00e8le', 'Usage'], [
     ('Claude Code', 'Claude Opus 4.6', 'G\u00e9n\u00e9ration du code, debugging, d\u00e9ploiement'),
+    ('Groq API', 'Llama 3.3 70B (Meta)', 'Agent conversationnel en production'),
     ('Framer Motion', 'Open source', 'Animations et transitions'),
     ('Tailwind CSS v4', 'Open source', 'Framework CSS utility-first'),
     ('Vercel', 'Cloud', 'H\u00e9bergement et CDN'),
@@ -514,7 +517,7 @@ add_body_text(doc,
 
 add_body_text(doc,
     "Le site est enti\u00e8rement responsive, d\u00e9ploy\u00e9 en production sur Vercel, "
-    "et propose une exp\u00e9rience utilisateur premium avec 17 composants interactifs."
+    "et propose une exp\u00e9rience utilisateur premium avec 16 composants interactifs."
 )
 
 doc.add_paragraph()
